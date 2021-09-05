@@ -1,4 +1,4 @@
-package com.brian.rabbitmq.dead;
+package com.brian.rabbitmq.deadletter;
 
 import com.brian.rabbitmq.utils.RabbitMqUtils;
 import com.rabbitmq.client.BuiltinExchangeType;
@@ -6,6 +6,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author brian
@@ -24,22 +26,40 @@ public class Consumer01 {
 
         channel.exchangeDeclare(NORMAL_EXCHANGE_NAME, BuiltinExchangeType.DIRECT);
         channel.exchangeDeclare(DEAD_EXCHANGE_NAME, BuiltinExchangeType.DIRECT);
-
+        // 声明普通队列
+        Map<String, Object> arguments = new HashMap<>();
+        // 过期时间
+        //arguments.put("x-message-ttl", 10000);
+        // 正常队列设置死信交换机
+        arguments.put("x-dead-letter-exchange", DEAD_EXCHANGE_NAME);
+        // 设置死信routingkey
+        arguments.put("x-dead-letter-routing-key", "lisi");
+        // 设置队列长度限制
+        //arguments.put("x-max-length", 6);
         channel.queueDeclare(NORMAL_QUEUE_NAME, false, false,
-                false, null);
+                false, arguments);
+        // 声明死信队列
         channel.queueDeclare(DEAD_QUEUE_NAME, false, false,
                 false, null);
-
-        channel.queueBind(queueName, EXCHANGE_NAME, routingKey2);
+        channel.queueBind(NORMAL_QUEUE_NAME, NORMAL_EXCHANGE_NAME, "zhangsan");
+        channel.queueBind(DEAD_QUEUE_NAME, DEAD_EXCHANGE_NAME, "lisi");
         System.out.println("等待接收消息，吧接收到的消息打印到屏幕上。。。。。。");
         // 接收消息
         DeliverCallback deliverCallback = (consumerTag, message) -> {
-            System.out.println("Consumer01控制台打印接收到的消息："
-                    + new String(message.getBody(),
-                    StandardCharsets.UTF_8));
+            String msg = new String(message.getBody(),
+                    StandardCharsets.UTF_8);
+            if ("info5".equals(msg)) {
+                System.out.println("消息被拒绝："
+                        + msg);
+                channel.basicReject(message.getEnvelope().getDeliveryTag(), false);
+            } else {
+                System.out.println("Consumer01控制台打印接收到的消息："
+                        + msg);
+                channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
+            }
         };
         // 消费者取消消息时回调接口
-        channel.basicConsume(NORMAL_QUEUE_NAME, true, deliverCallback,
+        channel.basicConsume(NORMAL_QUEUE_NAME, false, deliverCallback,
                 consumerTag -> {
                 });
     }

@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
  * @author brian
  * @date 2021/8/23
  */
-public class ReceiveLogs01 {
+public class ReceiveLogs03 {
 
     public static final String EXCHANGE_NAME = "direct_logs";
 
@@ -21,11 +21,9 @@ public class ReceiveLogs01 {
         // 声明一个队列 临时队列，队列的名称是随机的
         // 绑定交换机与队列
         String queueName = "console";
-        String routingKey1 = "info";
-        String routingKey2 = "warning";
+        String routingKey = "info";
         channel.queueDeclare(queueName, false, false, false, null);
-        channel.queueBind(queueName, EXCHANGE_NAME, routingKey1);
-        channel.queueBind(queueName, EXCHANGE_NAME, routingKey2);
+        channel.queueBind(queueName, EXCHANGE_NAME, routingKey);
         System.out.println("等待接收消息，吧接收到的消息打印到屏幕上。。。。。。");
         // 接收消息
         DeliverCallback deliverCallback = (consumerTag, message) -> {
